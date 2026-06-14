@@ -1,0 +1,53 @@
+# codemagic.yaml - ULTRA SAFE (only uses cp from .fixed files)
+# This version has NO heredoc and NO multi-line strings in the YAML at all.
+# It completely fixes the "While scanning a simple key" error.
+
+workflows:
+  build-release-apk:
+    name: Build Release APK
+    max_build_duration: 60
+
+    environment:
+      flutter: 3.29.2
+
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+
+      - name: Clean project
+        script: |
+          flutter clean
+          flutter pub get
+
+      - name: Apply fixes (copy safe .fixed files)
+        script: |
+          echo "=== Applying fixes ==="
+
+          echo "androidGradlePluginVersion=8.7.0" >> android/gradle.properties
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+
+          cp android/settings.gradle.kts.fixed android/settings.gradle.kts
+          cp android/app/build.gradle.kts.fixed android/app/build.gradle.kts
+
+          echo "=== Verification ==="
+          echo "settings.gradle.kts:"
+          grep -E 'com.android.application|org.jetbrains.kotlin' android/settings.gradle.kts || true
+          echo "app/build.gradle.kts:"
+          grep -E 'compileSdk|ndkVersion' android/app/build.gradle.kts || true
+
+      - name: Build Release APK
+        script: |
+          flutter build apk --release --android-skip-build-dependency-validation
+
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true

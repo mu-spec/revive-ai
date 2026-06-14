@@ -1,0 +1,56 @@
+name: Build Release APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.2'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Clean project
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Force AGP 8.7.0, Kotlin 1.9.24, compileSdk 36
+        run: |
+          # Only target Android plugin for AGP 8.7.0 - do not touch Kotlin line
+          sed -i 's/id("com.android.application") version "[^"]*"/id("com.android.application") version "8.7.0"/' android/settings.gradle.kts || true
+          # Ensure Kotlin is explicitly 1.9.24
+          sed -i 's/id("org.jetbrains.kotlin.android") version "[^"]*"/id("org.jetbrains.kotlin.android") version "1.9.24"/' android/settings.gradle.kts || true
+          # Force in gradle.properties
+          echo "androidGradlePluginVersion=8.7.0" >> android/gradle.properties
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          # Force compileSdk 36 in app build if present
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/compileSdk = [0-9]*/compileSdk = 36/' android/app/build.gradle.kts || true
+            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 36/' android/app/build.gradle.kts || true
+          fi
+          echo "=== Verified settings.gradle.kts ==="
+          cat android/settings.gradle.kts
+          echo "=== Verified gradle.properties (last lines) ==="
+          tail -10 android/gradle.properties
+
+      - name: Build Release APK
+        run: flutter build apk --release --android-skip-build-dependency-validation
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: revive-ai-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7

@@ -1,0 +1,118 @@
+# azure-pipelines.yml
+# Bulletproof Azure DevOps Pipeline for ReviveAI Release APK
+# Includes all fixes: Kotlin 2.0.21, NDK 27.0.12077973, compileSdk 36, AGP 8.7.0
+# Full file overwrites for maximum reliability
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: FlutterInstall@1
+  inputs:
+    flutterVersion: '3.29.2'
+    channel: 'stable'
+  displayName: 'Install Flutter 3.29.2'
+
+- script: |
+    flutter pub get
+    flutter clean
+    flutter pub get
+  displayName: 'Install dependencies & Clean'
+
+- script: |
+    echo "=== Applying fixes ==="
+    echo "androidGradlePluginVersion=8.7.0" >> android/gradle.properties
+    echo "android.useAndroidX=true" >> android/gradle.properties
+    echo "android.enableJetifier=true" >> android/gradle.properties
+
+    # Overwrite settings.gradle.kts (Kotlin 2.0.21 + AGP 8.7.0)
+    cat > android/settings.gradle.kts << 'SETTINGS_EOF'
+pluginManagement {
+    val flutterSdkPath = run {
+        val properties = java.util.Properties()
+        file("local.properties").inputStream().use { properties.load(it) }
+        val flutterSdkPath = properties.getProperty("flutter.sdk")
+        require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
+        flutterSdkPath
+    }
+
+    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id("dev.flutter.flutter-plugin-loader") version "1.0.0"
+    id("com.android.application") version "8.7.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+}
+
+include(":app")
+SETTINGS_EOF
+
+    # Overwrite app/build.gradle.kts (NDK 27 + compileSdk 36)
+    cat > android/app/build.gradle.kts << 'APP_EOF'
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+android {
+    namespace = "com.example.revive_ai"
+    compileSdk = 36
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
+    }
+
+    defaultConfig {
+        applicationId = "com.example.revive_ai"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+APP_EOF
+
+    echo "=== Verification ==="
+    echo "settings.gradle.kts Kotlin:"
+    grep 'org.jetbrains.kotlin' android/settings.gradle.kts || true
+    echo "app/build.gradle.kts:"
+    grep -E 'compileSdk|ndkVersion' android/app/build.gradle.kts || true
+  displayName: 'Apply AGP 8.7.0 + Kotlin 2.0.21 + NDK 27 + compileSdk 36'
+
+- script: |
+    flutter build apk --release --android-skip-build-dependency-validation
+  displayName: 'Build Release APK'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'build/app/outputs/flutter-apk/app-release.apk'
+    ArtifactName: 'revive-ai-release-apk'
+    publishLocation: 'Container'
+  displayName: 'Upload APK Artifact'

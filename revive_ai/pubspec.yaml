@@ -1,0 +1,49 @@
+name: revive_ai
+description: "ReviveAI - AI Photo Restore & Enhance. Bring old memories back to life with powerful AI."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.2.1
+  http: ^1.6.0
+  path_provider: ^2.1.5
+  share_plus: ^12.0.2
+  permission_handler: ^12.0.3
+  cached_network_image: ^3.4.1
+  intl: ^0.20.2
+  image: ^4.8.0
+  shared_preferences: ^2.5.3
+  fluttertoast: ^9.0.0
+  before_after: ^3.2.0
+  url_launcher: ^6.3.2
+  uuid: ^4.5.3
+  cross_file: ^0.3.5
+  google_mobile_ads: ^5.1.0
+  in_app_purchase: ^3.2.0
+  connectivity_plus: ^6.0.0
+  gal: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+  # flutter_native_splash removed for now due to persistent bug on your machine.
+  # We can add it back later with a different approach if needed.
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/legal/privacy_policy.md
+    - assets/legal/terms_of_service.md
+    - assets/images/

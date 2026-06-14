@@ -1,0 +1,63 @@
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+android {
+    namespace = "com.example.revive_ai"
+    compileSdk = 36
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
+    }
+
+    defaultConfig {
+        applicationId = "com.example.revive_ai"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        create("release") {
+            // === REAL RELEASE SIGNING (REQUIRED FOR PLAY STORE + REAL IAP TESTING) ===
+            // This block is ready. You only need to:
+            // 1. Generate the keystore once on your PC (see RELEASE_SIGNING_GUIDE.md)
+            // 2. Upload it to Codemagic → Code signing tab
+            // 3. When ready for signed builds, change the line below to use "release"
+            //
+            // DO NOT commit the actual .jks file or passwords to git.
+
+            // storeFile = file("reviveai-release-key.jks")   // place the generated file here
+            // storePassword = "YOUR_STRONG_PASSWORD"
+            // keyAlias = "reviveai"
+            // keyPassword = "YOUR_STRONG_PASSWORD"
+        }
+    }
+
+    buildTypes {
+        release {
+            // Currently using debug signing → easy sideloading for phone testing on CPH2083.
+            // Switch to the line below once you upload a real keystore to Codemagic.
+            signingConfig = signingConfigs.getByName("debug")
+            // signingConfig = signingConfigs.getByName("release")   // ← UNCOMMENT THIS FOR PLAY STORE / REAL IAP
+
+            // Recommended production settings (enable later):
+            // isMinifyEnabled = true
+            // isShrinkResources = true
+            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
